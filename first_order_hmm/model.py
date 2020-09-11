@@ -110,7 +110,9 @@ class FirstOrderHMM:
         ).sum()
 
     def viterbi(
-            self, obs_indices: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+            self,
+            obs_indices: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
         total_time_step = obs_indices.shape[0]
         viterbi_prob_mat = np.zeros((total_time_step, self.num_states))
         prev_state_mat = np.zeros(
@@ -233,7 +235,9 @@ class FirstOrderHMMDumb(FirstOrderHMM):
         return backward_prob_mat
 
     def viterbi(
-            self, obs_indices: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+            self,
+            obs_indices: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
         total_time_step = obs_indices.shape[0]
         viterbi_prob_mat = np.zeros((total_time_step, self.num_states))
         prev_state_mat = np.zeros(
