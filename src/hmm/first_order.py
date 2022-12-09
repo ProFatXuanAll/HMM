@@ -79,7 +79,7 @@ class FirstOrderHMM:
     self.n_obs = n_obs
     self.tran_m = tran_m
 
-  def gen_seq(self, seq_len: int) -> np.ndarray:
+  def gen_seq(self, seq_len: int) -> Tuple[np.ndarray, np.ndarray]:
     """Randomly generate sequence.
 
     Parameters
@@ -122,80 +122,193 @@ class FirstOrderHMM:
 
     return (state_id_seq, obs_id_seq)
 
-  def forward_algo(self, obs_id_seq: np.ndarray) -> np.ndarray:
+  def check_obs_id_seq(self, obs_id_seq: np.ndarray) -> None:
+    """Validate sequence of observation ids.
+
+    Parameters
+    ==========
+    obs_id_seq: np.ndarray
+      Sequence of observation ids to be validated.
+
+    Raises
+    ======
+    TypeError
+      When `obs_id_seq` is not an instance of `np.ndarray`.
+    ValueError
+      When the dimension of `obs_id_seq.shape` is not 1, or when some ids in `obs_id_seq` is out of range.
+    """
     # Type check.
     if not isinstance(obs_id_seq, np.ndarray):
       raise TypeError('`obs_id_seq` must be an instance of `np.ndarray`.')
 
-    # Shape check.
+    # Dimension check.
     if len(obs_id_seq.shape) != 1:
-      raise ValueError(f'The dimension of `obs_id_seq.shape` must be 1 instead of {len(obs_id_seq.shape)}')
+      raise ValueError(f'The dimension of `obs_id_seq.shape` must be 1 instead of {len(obs_id_seq.shape)}.')
+
+    # Value check.
+    if not np.all((0 <= obs_id_seq) & (obs_id_seq <= self.n_obs - 1)):
+      raise ValueError(f'`obs_id_seq` must sequence of integer within the range [0, {self.n_obs - 1}].')
+
+  def check_state_id_seq(self, state_id_seq: np.ndarray) -> None:
+    """Validate sequence of state ids.
+
+    Parameters
+    ==========
+    state_id_seq: np.ndarray
+      Sequence of state ids to be validated.
+
+    Raises
+    ======
+    TypeError
+      When `state_id_seq` is not an instance of `np.ndarray`.
+    ValueError
+      When the dimension of `state_id_seq.shape` is not 1, or when some ids in `state_id_seq` is out of range.
+    """
+    # Type check.
+    if not isinstance(state_id_seq, np.ndarray):
+      raise TypeError('`state_id_seq` must be an instance of `np.ndarray`.')
 
     # Dimension check.
-    if np.all((0 <= obs_id_seq) & (obs_id_seq <= self.n_obs - 1)):
-      raise ValueError(f'Each entry in observation sequence must be within range [0, {self.n_obs - 1}].')
+    if len(state_id_seq.shape) != 1:
+      raise ValueError(f'The dimension of `state_id_seq.shape` must be 1 instead of {len(state_id_seq.shape)}.')
+
+    # Value check.
+    if not np.all((0 <= state_id_seq) & (state_id_seq <= self.n_state - 1)):
+      raise ValueError(f'`state_id_seq` must sequence of integer within the range [0, {self.n_state - 1}].')
+
+  def get_obs_n_state_prob(self, obs_id_seq: np.ndarray, state_id_seq: np.ndarray) -> float:
+    """Calculate the joint probability of the given observation and state sequences.
+
+    Parameters
+    ==========
+    obs_id_seq: np.ndarray
+      Sequence of observation ids to calculate the joint probability.
+    state_id_seq: np.ndarray
+      Sequence of state ids to calculate the joint probability.
+
+    Returns
+    =======
+    float
+      The joint probability of the given observation and state sequences.
+    """
+    self.check_obs_id_seq(obs_id_seq=obs_id_seq)
+    self.check_state_id_seq(state_id_seq=state_id_seq)
+
+    if not obs_id_seq.shape[0] != state_id_seq.shape[0]:
+      raise ValueError('Length inconsistency.')
 
     seq_len = obs_id_seq.shape[0]
-    forward_prob_mat = np.zeros((seq_len, self.n_state))
 
-    # Calculate the probability of the initial state times the initial observation.
-    forward_prob_mat[0] = self.init_m * self.emit_m[obs_id_seq[0]]
+    cur_state_id = state_id_seq[0]
+    cur_obs_id = obs_id_seq[0]
+    prob = self.init_m[cur_state_id] * self.emit_m[cur_state_id, cur_obs_id]
 
-    # Iteratively calculate forward probabilities.
-    for step in range(1, seq_len):
-      forward_prob_vec = (forward_prob_mat[step - 1].reshape(-1, 1) * self.tran_m).sum(axis=0)
-      forward_prob_mat[step] = (forward_prob_vec * self.emit_m[:, obs_id_seq[step]])
+    for cur_step in range(1, seq_len):
+      prev_state_id = cur_state_id
+      cur_state_id = state_id_seq[cur_step]
+      cur_obs_id = obs_id_seq[cur_step]
+      prob *= self.tran_m[prev_state_id, cur_state_id] * self.emit_m[cur_state_id, cur_obs_id]
 
-    return forward_prob_mat
+    return prob
 
-  def obs_prob_by_forward(self, obs_id_seq: np.ndarray) -> float:
-    forward_prob_mat = self.forward(obs_id_seq=obs_id_seq)
-    return forward_prob_mat[-1].sum()
+  def forward_algo(self, obs_id_seq: np.ndarray) -> Tuple[float, np.ndarray]:
+    """Use forward algorithm to calculate observation probability.
 
-  def backward(self, obs_id_seq: np.ndarray) -> np.ndarray:
-    total_time_step = obs_id_seq.shape[0]
-    backward_prob_mat = np.zeros((total_time_step, self.n_state))
+    Parameters
+    ==========
+    obs_id_seq: np.ndarray
+      Sequence of observation ids to calculate the probability.
 
-    # Initialize last time step T.
-    backward_prob_mat[-1] = 1
+    Returns
+    =======
+    tuple[float, np.ndarray]
+      The first item in the returned tuple is the probability of the given observation sequence.
+      The second item in the returned tuple is the forward probability sequence.
+    """
+    # Validate `obs_id_seq`.
+    self.check_obs_id_seq(obs_id_seq=obs_id_seq)
 
-    # Iteratively calculate backward probabilities \beta_t(i).
-    for time_step in range(total_time_step - 2, -1, -1):
-      backward_prob_mat[time_step] = (
-        self.tran_m * self.emit_m[:, obs_id_seq[time_step + 1]].reshape(1, -1) *
-        backward_prob_mat[time_step + 1].reshape(1, -1)
-      ).sum(axis=1)
+    seq_len = obs_id_seq.shape[0]
+    alpha_m = np.zeros((seq_len, self.n_state))
 
-    return backward_prob_mat
+    cur_obs_id = obs_id_seq[0]
+    alpha_m[0, :] = self.init_m * self.emit_m[:, cur_obs_id]
 
-  def obs_prob_by_backward(self, obs_id_seq: np.ndarray) -> float:
-    backward_prob_mat = self.backward(obs_id_seq=obs_id_seq)
-    return (self.init_m * self.emit_m[:, obs_id_seq[0]] * backward_prob_mat[0]).sum()
+    for cur_step in range(1, seq_len):
+      prev_step = cur_step - 1
+      cur_obs_id = obs_id_seq[cur_step]
 
-  def viterbi(self, obs_id_seq: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    total_time_step = obs_id_seq.shape[0]
-    viterbi_prob_mat = np.zeros((total_time_step, self.n_state))
-    prev_state_mat = np.zeros((total_time_step, self.n_state), dtype=np.int64)
+      # (1, n_state) @ (n_state, n_state) -> (1, n_state) -> (n_state)
+      acc_prob = (alpha_m[prev_step, :].reshape(1, self.n_state) @ self.tran_m).reshape(self.n_state)
+      alpha_m[cur_step, :] = acc_prob * self.emit_m[:, cur_obs_id]
 
-    # Initialize time step 0.
-    viterbi_prob_mat[0] = self.init_m * self.emit_m[:, obs_id_seq[0]]
+    obs_prob = alpha_m[seq_len - 1].sum()
+    return obs_prob, alpha_m
 
-    # Iteratively calculate Viterbi probabilities \delta_t(i) and previous best state
-    # \psi_t(i).
-    for time_step in range(1, total_time_step):
-      viterbi_prob_vec = (viterbi_prob_mat[time_step - 1].reshape(-1, 1) * self.tran_m)
-      prev_state_mat[time_step] = np.argmax(viterbi_prob_vec, axis=0)
-      viterbi_prob_vec = np.max(viterbi_prob_vec, axis=0)
-      viterbi_prob_mat[time_step] = (viterbi_prob_vec * self.emit_m[:, obs_id_seq[time_step]])
+  def backward_algo(self, obs_id_seq: np.ndarray) -> Tuple[float, np.ndarray]:
+    """Use backward algorithm to calculate observation probability.
 
-    # Back track all best states.
-    all_best_states = [np.argmax(prev_state_mat[-1])]
-    for time_step in range(total_time_step - 2, -1, -1):
-      all_best_states.append(prev_state_mat[time_step, all_best_states[-1]])
+    Parameters
+    ==========
+    obs_id_seq: np.ndarray
+      Sequence of observation ids to calculate the probability.
 
-    all_best_states.reverse()
+    Returns
+    =======
+    tuple[float, np.ndarray]
+      The first item in the returned tuple is the probability of the given observation sequence.
+      The second item in the returned tuple is the backward probability sequence.
+    """
+    # Validate `obs_id_seq`.
+    self.check_obs_id_seq(obs_id_seq=obs_id_seq)
 
-    return viterbi_prob_mat, np.array(all_best_states)
+    seq_len = obs_id_seq.shape[0]
+    beta_m = np.ones((seq_len, self.n_state))
+
+    for cur_step in range(seq_len - 2, -1, -1):
+      next_step = cur_step + 1
+      next_obs_id = obs_id_seq[next_step]
+
+      acc_prob = self.emit_m[:, next_obs_id] * beta_m[next_step, :]
+      # (n_state, n_state) @ (n_state, 1) -> (n_state, 1) -> (n_state)
+      beta_m[cur_step, :] = (self.tran_m @ acc_prob.reshape(self.n_state, 1)).reshape(self.n_state)
+
+    cur_obs_id = obs_id_seq[0]
+    obs_prob = (beta_m[0, :] * self.emit_m[:, cur_obs_id] * self.init_m).sum()
+
+    return obs_prob, beta_m
+
+  def viterbi_algo(self, obs_id_seq: np.ndarray) -> Tuple[float, np.ndarray]:
+    # Validate `obs_id_seq`.
+    self.check_obs_id_seq(obs_id_seq=obs_id_seq)
+
+    seq_len = obs_id_seq.shape[0]
+    delta_m = np.zeros((seq_len, self.n_state))
+    psi_m = np.zeros((seq_len, self.n_state), dtype=np.int64)
+
+    cur_obs_id = obs_id_seq[0]
+    delta_m[0, :] = self.init_m * self.emit_m[:, cur_obs_id]
+
+    for cur_step in range(1, seq_len):
+      prev_step = cur_step - 1
+      cur_obs_id = obs_id_seq[cur_step]
+
+      # (n_state, 1) * (n_state, n_state) -> (n_state, n_state)
+      acc_prob = delta_m[prev_step, :].reshape(self.n_state, 1) * self.tran_m
+      delta_m[cur_step, :] = np.max(acc_prob, axis=0) * self.emit_m[:, cur_obs_id]
+      psi_m[cur_step, :] = np.argmax(acc_prob, axis=0)
+
+    best_state_id_seq = np.zeros(seq_len, dtype=np.int64)
+    cur_best_state_id = np.argmax(delta_m[seq_len - 1, :])
+    best_state_id_seq[seq_len - 1] = cur_best_state_id
+    best_obs_n_state_prob = delta_m[seq_len - 1, cur_best_state_id]
+
+    for cur_step in range(seq_len - 2, -1, -1):
+      next_step = cur_step + 1
+      cur_best_state_id = psi_m[next_step, cur_best_state_id]
+      best_state_id_seq[cur_step] = cur_best_state_id
+
+    return best_obs_n_state_prob, best_state_id_seq
 
   def baum_welch(self, obs_id_seq: np.ndarray) -> None:
     total_time_step = obs_id_seq.shape[0]
