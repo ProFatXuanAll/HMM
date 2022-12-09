@@ -1,33 +1,33 @@
 # HMM
 
-使用 python 實作 Hidden Markov Model。
+Hidden Markov Model implementation using python.
 
-## 安裝
+## Installation
 
-1. 下載專案
+1. Download the repo.
 
 ```sh
 git clone https://github.com/ProFatXuanAll/HMM.git
 ```
 
-2. 更改當前路徑
+2. Change the current directory.
 
 ```sh
 cd HMM
 ```
 
-3. 使用 `pipenv` 安裝相依套件
+3. Use `pipenv` to install dependencies.
 
 ```sh
 pipenv install
 ```
 
-## 實作內容
+## Implementation Details
 
-- 一階隱藏馬可夫模型 First order Markov model
-- 計算觀測序列機率值 Forward-Backward Algorithm
-- 找出最佳隱藏狀態 Viterbi Algorithm
-- 最佳化馬可夫模型參數 Baum-Welch Algorithm
+- First order Markov model
+- Forward-Backward Algorithm
+- Viterbi Algorithm
+- Baum-Welch Algorithm
 
 ## License
 
