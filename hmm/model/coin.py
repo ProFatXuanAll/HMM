@@ -1,10 +1,10 @@
 import numpy as np
 
-import src.dset.base
-import src.util.func
+import hmm.model.base
+import hmm.util.func
 
 
-class SimpleCoinTossTrials(src.dset.base.BaseDset):
+class SimpleCoinTossTrials(hmm.model.base.BaseModel):
   """Simple coin toss trials.
 
   There are 3 coins with probability of head equal to 0.1, 0.3, 0.5, respectively.
@@ -15,20 +15,20 @@ class SimpleCoinTossTrials(src.dset.base.BaseDset):
   """
 
   def __init__(self):
-    self.obs2id = {
+    self.o2id = {
       'head': 0,
       'tail': 1,
     }
-    self.id2obs = {
+    self.id2o = {
       0: 'head',
       1: 'tail',
     }
-    self.state2id = {
+    self.s2id = {
       '0th-coin': 0,
       '1st-coin': 1,
       '2nd-coin': 2,
     }
-    self.id2state = {
+    self.id2s = {
       0: '0th-coin',
       1: '1st-coin',
       2: '2nd-coin',
@@ -46,7 +46,7 @@ class SimpleCoinTossTrials(src.dset.base.BaseDset):
     ])
 
 
-class RandomCoinTossTrials(src.dset.base.BaseDset):
+class RandomCoinTossTrials(hmm.model.base.BaseModel):
 
   def __init__(self, *, n_coin: int, mean: float = 0.0, std: float = 1.0):
     # Type check.
@@ -63,16 +63,16 @@ class RandomCoinTossTrials(src.dset.base.BaseDset):
     if std <= 0.0:
       raise ValueError('`std` must be a positive number.')
 
-    self.obs2id = {
+    self.o2id = {
       'head': 0,
       'tail': 1,
     }
-    self.id2obs = {
+    self.id2o = {
       0: 'head',
       1: 'tail',
     }
-    self.state2id = {f'coin-{idx}': idx for idx in range(n_coin)}
-    self.id2state = {idx: f'coin-{idx}' for idx in range(n_coin)}
+    self.s2id = {f'coin-{idx}': idx for idx in range(n_coin)}
+    self.id2s = {idx: f'coin-{idx}' for idx in range(n_coin)}
 
     self.n_coin = n_coin
     self.mean = mean
@@ -84,9 +84,9 @@ class RandomCoinTossTrials(src.dset.base.BaseDset):
     tran_m = np.random.normal(loc=mean, scale=std, size=(n_coin, n_coin))
 
     # Normalize to probability distribution.
-    emit_m = src.util.func.softmax(arr=emit_m, axis=1)
-    init_m = src.util.func.softmax(arr=init_m, axis=0)
-    tran_m = src.util.func.softmax(arr=tran_m, axis=1)
+    emit_m = hmm.util.func.softmax(arr=emit_m, axis=1)
+    init_m = hmm.util.func.softmax(arr=init_m, axis=0)
+    tran_m = hmm.util.func.softmax(arr=tran_m, axis=1)
 
     self.emit_m = emit_m
     self.init_m = init_m

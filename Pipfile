@@ -11,7 +11,9 @@ tqdm = "*"
 [dev-packages]
 isort = "*"
 flake8 = "*"
+mypy = "*"
 pytest = "*"
+types-tqdm = "*"
 yapf = "*"
 
 [requires]

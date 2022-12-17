@@ -2,7 +2,7 @@ import numpy as np
 
 
 def softmax(*, arr: np.ndarray, axis: int = 0) -> np.ndarray:
-  """Softmax operation implemented in `np.ndarray`.
+  """Softmax operation implemented in `numpy.ndarray`.
 
   Parameters
   ==========
@@ -13,7 +13,7 @@ def softmax(*, arr: np.ndarray, axis: int = 0) -> np.ndarray:
   """
   # Type check.
   if not isinstance(arr, np.ndarray):
-    raise ValueError('`arr` must be an instance of `np.ndarray`.')
+    raise ValueError('`arr` must be an instance of `numpy.ndarray`.')
   if not isinstance(axis, int):
     raise ValueError('`axis` must be an instance of `int`.')
 

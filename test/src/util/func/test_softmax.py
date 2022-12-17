@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-import src.util.func
+import hmm.util.func
 
 
 @pytest.fixture
@@ -16,7 +16,7 @@ def axis(request) -> int:
 
 def test_softmax_value(arr: np.ndarray, axis: int) -> None:
   """Must have correct values."""
-  out_arr = src.util.func.softmax(arr=arr, axis=axis)
+  out_arr = hmm.util.func.softmax(arr=arr, axis=axis)
   assert out_arr.shape == arr.shape, 'must have correct shape.'
   assert np.all((0.0 <= out_arr) & (out_arr <= 1.0)), 'Values must be within the range [0, 1].'
   assert np.all(np.isclose(out_arr.sum(axis=axis), 1.0)), 'Values must sum up to 1.'

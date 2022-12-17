@@ -3,14 +3,14 @@ from inspect import Parameter, Signature
 
 import numpy as np
 
-import src.util.func
+import hmm.util.func
 
 
 def test_module_method() -> None:
   """Ensure module methods' signature."""
-  assert hasattr(src.util.func, 'softmax')
-  assert inspect.isfunction(src.util.func.softmax)
-  assert inspect.signature(src.util.func.softmax) == Signature(
+  assert hasattr(hmm.util.func, 'softmax')
+  assert inspect.isfunction(hmm.util.func.softmax)
+  assert inspect.signature(hmm.util.func.softmax) == Signature(
     parameters=[
       Parameter(
         annotation=np.ndarray,
